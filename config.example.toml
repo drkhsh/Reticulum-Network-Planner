@@ -1,0 +1,65 @@
+[project]
+name = "My Radio Map"
+output_dir = "output"
+
+[timezone]
+utc_offset = 0
+
+[coverage]
+radius_km = 7.0          # target area of interest around base (what we want covered)
+grid_step_m = 50.0
+antenna_height_m = 3.0
+rx_height_m = 1.5
+
+[optimizer]
+mesh_radius_km = 2.7       # max station↔station mesh link distance
+station_range_km = 2.7     # max station↔ground coverage distance (omit to default to mesh_radius_km)
+candidate_step_m = 150.0
+min_station_spacing_km = 1.0
+n_starts = 20
+default_n_stations = 7
+
+# Optional: optimize for people reached instead of land area. When enabled,
+# the optimizer scores candidates by how many residents fall within their LoS
+# coverage, using WorldPop 1km population data (auto-downloaded on first run).
+# Leave disabled for pure area-based optimization.
+[population]
+enabled = false
+raster = "data/pop/usa_ppp_2020_1km_Aggregated_UNadj.tif"
+country = "usa"          # only "usa" wired up by default; add more URLs in src/population.jl
+
+[[seed_stations]]
+lat = 0.0
+lon = 0.0
+name = "Base 1"
+
+[[teams]]
+name = "alpha"
+gpx = "data/gpx/alpha.gpx"
+mesh_file = "data/mesh/mesh_data_node_alpha.json"
+mesh_key = "changeme"
+color = "blue"
+
+[[teams]]
+name = "bravo"
+gpx = "data/gpx/bravo.gpx"
+mesh_file = "data/mesh/mesh_data_node_bravo.json"
+mesh_key = "changeme"
+color = "purple"
+reverse_file = "data/mesh/mesh_data_node_bravo_reverse.json"
+reverse_key = "changeme"
+
+[[peer_links]]
+listener = "alpha"
+source = "bravo"
+mesh_file = "data/mesh/mesh_data_node_alpha.json"
+mesh_key = "changeme"
+
+[[extra_points]]
+team = "alpha"
+lat = 0.0
+lon = 0.0
+ele = 0.0
+rssi = -100
+snr = 0.0
+label = "example point"
