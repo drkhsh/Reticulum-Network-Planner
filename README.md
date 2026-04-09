@@ -1,5 +1,6 @@
 # Reticulum Radio Map
 
+
 When planning a mesh radio network you need to know where to put your nodes. This tool has two modes:
 
 **Radio mapping** - Drive around with a radio and a GPS tracker, then feed the data in. The tool correlates your signal readings with GPS positions and generates an interactive map showing where your signal is strong, weak, one-way, or absent. Useful for understanding real-world coverage from an existing base station.

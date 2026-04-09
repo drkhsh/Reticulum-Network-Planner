@@ -11,7 +11,7 @@ import random
 import datetime
 import curses
 import json
-import asyncio 
+import os
 
 
 APP_NAME = "example_utilities"
@@ -114,10 +114,22 @@ def serialize_datetime(obj):
     raise TypeError("Type not serializable")
 
 def save_and_exit():
-    print(transmission_history)
-    with open(f'mesh_data_node_{node_name}.json', 'w') as f:
-        json.dump(transmission_history, f, default=serialize_datetime)
-    sys.exit(1)
+    filepath = f'mesh_data_node_{node_name}.json'
+    if os.path.exists(filepath):
+        with open(filepath, 'r') as f:
+            existing = json.load(f)
+        for key, entries in transmission_history.items():
+            if key in existing:
+                existing[key].extend(entries)
+            else:
+                existing[key] = entries
+        merged = existing
+    else:
+        merged = transmission_history
+    with open(filepath, 'w') as f:
+        json.dump(merged, f, default=serialize_datetime)
+    print(f"Saved to {filepath}")
+    sys.exit(0)
 
 
 
