@@ -42,10 +42,14 @@ struct Config
     antenna_height_m::Float64
     rx_height_m::Float64
     mesh_radius_km::Float64
+    station_range_km::Float64
     candidate_step_m::Float64
     min_station_spacing_km::Float64
     n_starts::Int
     default_n_stations::Int
+    population_enabled::Bool
+    population_raster::String
+    population_country::String
     seed_stations::Vector{SeedStation}
     teams::Vector{TeamConfig}
     peer_links::Vector{PeerLinkConfig}
@@ -58,6 +62,7 @@ function load_config(path::String)::Config
     tz = get(raw, "timezone", Dict())
     cov = get(raw, "coverage", Dict())
     opt = get(raw, "optimizer", Dict())
+    pop = get(raw, "population", Dict())
 
     seeds = [SeedStation(s["lat"], s["lon"], get(s, "name", "Base $(i)"))
              for (i, s) in enumerate(get(raw, "seed_stations", []))]
@@ -76,6 +81,9 @@ function load_config(path::String)::Config
                          Int(e["rssi"]), Float64(e["snr"]), get(e, "label", "extrapolated"))
               for e in get(raw, "extra_points", [])]
 
+    mesh_r = get(opt, "mesh_radius_km", 2.7)
+    station_r = get(opt, "station_range_km", mesh_r)
+
     Config(
         get(proj, "name", "Radio Map"),
         get(proj, "output_dir", "output"),
@@ -84,11 +92,15 @@ function load_config(path::String)::Config
         get(cov, "grid_step_m", 50.0),
         get(cov, "antenna_height_m", 3.0),
         get(cov, "rx_height_m", 1.5),
-        get(opt, "mesh_radius_km", 2.7),
+        mesh_r,
+        station_r,
         get(opt, "candidate_step_m", 150.0),
         get(opt, "min_station_spacing_km", 1.0),
         get(opt, "n_starts", 20),
         get(opt, "default_n_stations", 7),
+        get(pop, "enabled", false),
+        get(pop, "raster", "data/pop/usa_ppp_2020_1km_Aggregated_UNadj.tif"),
+        get(pop, "country", "usa"),
         seeds, teams, peers, extras
     )
 end

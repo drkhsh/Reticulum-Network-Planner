@@ -5,7 +5,7 @@ When planning a mesh radio network you need to know where to put your nodes. Thi
 
 **Radio mapping** - Drive around with a radio and a GPS tracker, then feed the data in. The tool correlates your signal readings with GPS positions and generates an interactive map showing where your signal is strong, weak, one-way, or absent. Useful for understanding real-world coverage from an existing base station.
 
-**Node placement** - Given a geographic area and your constraints (mesh link range, number of nodes, existing base stations), the tool uses SRTM terrain elevation data to compute line-of-sight across the region and find optimal positions for new nodes. Each node placement is verified to have a line-of-sight mesh route back to your base.
+**Node placement** - Given a geographic area and your constraints (mesh link range, number of nodes, existing base stations), the tool uses SRTM terrain elevation data to compute line-of-sight across the region and find optimal positions for new nodes. Each node placement is verified to have a line-of-sight mesh route back to your base. Placements can be optimized for either total land area covered or total population reached, using WorldPop 1 km population rasters that are auto-downloaded on first run.
 
 You can use either mode independently or both together.
 

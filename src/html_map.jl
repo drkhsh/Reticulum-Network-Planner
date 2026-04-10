@@ -22,6 +22,7 @@ function generate_html(cfg::Config, teams::Vector{TeamData};
 
     outdir = cfg.output_dir
     los_json = isfile("$outdir/los_data.json") ? read("$outdir/los_data.json", String) : "[]"
+    pop_json = isfile("$outdir/population_grid.json") ? read("$outdir/population_grid.json", String) : "[]"
 
     # Load station networks dynamically from output files
     networks_js = ""
@@ -87,6 +88,7 @@ L.marker([$(s.lat), $(s.lon)], {
   <span style="color:#ff0">- -</span> Farthest two-way<br>
   <span style="color:#0c0;background:#0c0;opacity:0.5">&#9632;</span> LoS<br>
   <span style="color:#c00;background:#c00;opacity:0.5">&#9632;</span> NLoS<br>
+  <span style="color:#064">Pop density</span>: <span style="background:#0064c8;color:#0064c8">&nbsp;</span><span style="background:#ffff00;color:#ff0">&nbsp;</span><span style="background:#ff8c00;color:#ff8c00">&nbsp;</span><span style="background:#b40000;color:#b40000">&nbsp;</span> low→high<br>
   <span id="track-legend"></span>
 </div>
 <div class="stats" id="stats"></div>
@@ -98,6 +100,7 @@ const tracksData = $(tracks_json);
 const nodesData = $(nodes_json);
 const peerLinks = $(peers_json);
 const losData = $(los_json);
+const popData = $(pop_json);
 const baseLat = $(base.lat), baseLon = $(base.lon);
 const teamColorMap = {$(team_colors_js)};
 
@@ -175,6 +178,33 @@ if (losData.length > 0) {
         ctx.fillStyle='rgba('+r+','+g+','+b+',0.45)';ctx.fillRect(p1.x,p1.y,p2.x-p1.x,p2.y-p1.y)});
     return tile}});
   addToggle('Topography', new TopoLayer(), false);
+}
+
+if (popData.length > 0) {
+  const pstep = 0.00045;
+  const pops = popData.map(d=>d.pop).filter(p=>p>0);
+  const pMax = pops.length ? Math.max(...pops) : 1;
+  const logMax = Math.log(pMax + 1);
+  let popTotal = 0; popData.forEach(d => { if(d.pop>0) popTotal += d.pop; });
+  const PopLayer = L.GridLayer.extend({createTile:function(coords){
+    const tile=document.createElement('canvas'), size=this.getTileSize();
+    tile.width=size.x; tile.height=size.y;
+    const ctx=tile.getContext('2d'), nwP=coords.scaleBy(size), nw=map.unproject(nwP,coords.z),
+          se=map.unproject(nwP.add(size),coords.z);
+    popData.filter(d=>d.pop>0&&d.lat>=se.lat-pstep&&d.lat<=nw.lat+pstep&&d.lon>=nw.lng-pstep&&d.lon<=se.lng+pstep)
+      .forEach(d=>{
+        const t=Math.log(d.pop+1)/logMax;  // 0..1 log-scaled
+        let r,g,b;
+        if(t<0.33){const u=t/0.33; r=Math.round(0+(255-0)*u); g=Math.round(100+(255-100)*u); b=Math.round(200+(0-200)*u);}
+        else if(t<0.66){const u=(t-0.33)/0.33; r=255; g=Math.round(255+(140-255)*u); b=0;}
+        else {const u=(t-0.66)/0.34; r=Math.round(255+(180-255)*u); g=Math.round(140+(0-140)*u); b=0;}
+        const p1=map.project(L.latLng(d.lat+pstep/2,d.lon-pstep/2),coords.z).subtract(nwP),
+              p2=map.project(L.latLng(d.lat-pstep/2,d.lon+pstep/2),coords.z).subtract(nwP);
+        ctx.fillStyle='rgba('+r+','+g+','+b+',0.55)';
+        ctx.fillRect(p1.x,p1.y,p2.x-p1.x,p2.y-p1.y);
+      });
+    return tile}});
+  addToggle('Population density ('+Math.round(popTotal).toLocaleString()+' people)', new PopLayer(), false);
 }
 
 function addStationNetwork(stations, losGrid, label) {

@@ -5,7 +5,7 @@
 using JSON3, Dates, Printf
 
 cd(@__DIR__)
-for f in ["config", "geo", "gpx", "mesh", "srtm", "los", "correlate", "optimize", "html_map"]
+for f in ["config", "geo", "gpx", "mesh", "srtm", "los", "correlate", "optimize", "population", "html_map"]
     include("src/$f.jl")
 end
 
@@ -90,14 +90,47 @@ function run_los(cfg::Config, tile::SRTMTile)
     println("  Saved $(cfg.output_dir)/los_data.json")
 end
 
+function load_population_weights(cfg::Config, grid)
+    ensure_worldpop(cfg.population_raster, cfg.population_country)
+    base = cfg.seed_stations[1]
+    margin_km = cfg.coverage_radius_km + 2.0
+    dlat = margin_km / 111.32
+    dlon = margin_km / (111.32 * cos(deg2rad(base.lat)))
+    println("  Loading population raster for ±$(round(margin_km, digits=1)) km window")
+    raster = load_population_window(cfg.population_raster,
+                                    base.lat - dlat, base.lat + dlat,
+                                    base.lon - dlon, base.lon + dlon)
+    weights = compute_pop_weights(grid, raster)
+    total = sum(weights)
+    @printf("  Population in target area: %.0f across %d grid cells\n", total, length(weights))
+    weights
+end
+
 function run_optimize(cfg::Config, tile::SRTMTile, n::Int)
     println("\n=== Optimizing station placement ($n stations) ===")
-    result = run_optimizer(tile, cfg, n)
+    weights = nothing
+    grid = nothing
+    if cfg.population_enabled
+        base = cfg.seed_stations[1]
+        grid = build_grid(tile, base.lat, base.lon, cfg.coverage_radius_km, cfg.grid_step_m)
+        weights = load_population_weights(cfg, grid)
+    end
+    result = run_optimizer(tile, cfg, n; weights=weights)
     outdir = cfg.output_dir
     mkpath(outdir)
     write("$outdir/optimal_stations_$n.json", JSON3.write(result.stations))
     write("$outdir/los_$(n)station.json", JSON3.write(result.los))
-    println("  Coverage: $(result.coverage_pct)%")
+
+    if cfg.population_enabled && grid !== nothing && weights !== nothing
+        pop_grid = [Dict("lat"=>round(g.lat, digits=6), "lon"=>round(g.lon, digits=6),
+                         "pop"=>round(weights[i], digits=3))
+                    for (i, g) in enumerate(grid)]
+        write("$outdir/population_grid.json", JSON3.write(pop_grid))
+        println("  Saved population grid")
+    end
+
+    unit = cfg.population_enabled ? "population" : "area"
+    println("  $unit coverage: $(result.coverage_pct)%")
     println("  Saved to $outdir/")
 end
 
