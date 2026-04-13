@@ -50,13 +50,20 @@ def program_setup(sc, configpath, node_name, node_location, channel=None):
     broadcast_destination.set_packet_callback(packet_callback)
     mainLoop(broadcast_destination, sc)
     
-
 def packet_callback(data, packet):
-    # Simply print out the received data
     sender_name = data.decode("utf-8")
-    packet_stats = {"rssi": packet.rssi, "snr": packet.snr, "time": datetime.datetime.now()}
-
     
+    # Try direct attributes first (when running own interface)
+    rssi = packet.rssi
+    snr = packet.snr
+    
+    # If on shared instance, fetch via RPC
+    if rssi is None and reticulum.is_connected_to_shared_instance:
+        rssi = reticulum.get_packet_rssi(packet.packet_hash)
+        snr = reticulum.get_packet_snr(packet.packet_hash)
+    
+    packet_stats = {"rssi": rssi, "snr": snr, "time": datetime.datetime.now()}
+
     most_recent_transmissions[sender_name] = packet_stats
     if (sender_name not in list(transmission_history.keys())):
         transmission_history[sender_name] = []
