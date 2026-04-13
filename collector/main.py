@@ -30,6 +30,7 @@ reticulum = None
 
 
 def program_setup(sc, configpath, node_name, node_location, channel=None):
+    global reticulum
     reticulum = RNS.Reticulum(configpath)
     
     if channel == None:
