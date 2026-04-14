@@ -164,7 +164,7 @@ if __name__ == "__main__":
         parser.add_argument(
             "--config",
             action="store",
-            default='./rns_config',
+            default=None,
             help="path to alternative Reticulum config directory",
             type=str
         )
